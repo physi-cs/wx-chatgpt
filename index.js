@@ -63,9 +63,11 @@ async function buildCtxPrompt({ FromUserName }) {
 async function getAIResponse(prompt) {
   const completion = await openai.createCompletion({
     model: 'text-davinci-003',
-    prompt,
+    prompt : prompt,
     max_tokens: 1024,
-    temperature: 0.1,
+    n : 1,
+    stop : None,
+    temperature: 0.5,
   });
 
   const response = (completion?.data?.choices?.[0].text || 'AI 挂了').trim();
@@ -87,71 +89,75 @@ async function getAIIMAGE(prompt) {
 
 // 获取 AI 回复消息
 async function getAIMessage({ Content, FromUserName }) {
-  // 找一下，是否已有记录
-  const message = await Message.findOne({
-    where: {
-      fromUser: FromUserName,
-      request: Content,
-    },
-  });
+  // // 找一下，是否已有记录
+  // const message = await Message.findOne({
+  //   where: {
+  //     fromUser: FromUserName,
+  //     request: Content,
+  //   },
+  // });
 
-  // 已回答，直接返回消息
-  if (message?.status === MESSAGE_STATUS_ANSWERED) {
-    return `[GPT]: ${message?.response}`;
-  }
+  // // 已回答，直接返回消息
+  // if (message?.status === MESSAGE_STATUS_ANSWERED) {
+  //   return `[GPT]: ${message?.response}`;
+  // }
 
-  // 在回答中
-  if (message?.status === MESSAGE_STATUS_THINKING) {
-    return AI_THINKING_MESSAGE;
-  }
+  // // 在回答中
+  // if (message?.status === MESSAGE_STATUS_THINKING) {
+  //   return AI_THINKING_MESSAGE;
+  // }
 
   const aiType = Content.startsWith(AI_IMAGE_KEY)
     ? AI_TYPE_IMAGE
     : AI_TYPE_TEXT;
 
-  // 检查一下历史消息记录，不能超过限制
-  const count = await Message.count({
-    where: {
-      fromUser: FromUserName,
-      aiType: aiType,
-    },
-  });
+  // // 检查一下历史消息记录，不能超过限制
+  // const count = await Message.count({
+  //   where: {
+  //     fromUser: FromUserName,
+  //     aiType: aiType,
+  //   },
+  // });
 
-  // 超过限制，返回提示
-  if (aiType === AI_TYPE_TEXT && count >= LIMIT_AI_TEXT_COUNT) {
-    return LIMIT_COUNT_RESPONSE;
-  }
+  // // 超过限制，返回提示
+  // if (aiType === AI_TYPE_TEXT && count >= LIMIT_AI_TEXT_COUNT) {
+  //   return LIMIT_COUNT_RESPONSE;
+  // }
 
-  // 超过限制，返回提示
-  if (aiType === AI_TYPE_IMAGE && count >= LIMIT_AI_IMAGE_COUNT) {
-    return LIMIT_COUNT_RESPONSE;
-  }
+  // // 超过限制，返回提示
+  // if (aiType === AI_TYPE_IMAGE && count >= LIMIT_AI_IMAGE_COUNT) {
+  //   return LIMIT_COUNT_RESPONSE;
+  // }
 
   // 没超过限制时，正常走AI链路
   // 因为AI响应比较慢，容易超时，先插入一条记录，维持状态，待后续更新记录。
-  await Message.create({
-    fromUser: FromUserName,
-    response: '',
-    request: Content,
-    aiType,
-  });
+  // await Message.create({
+  //   fromUser: FromUserName,
+  //   response: '',
+  //   request: Content,
+  //   aiType,
+  // });
 
   let response = '';
 
-  if (aiType === AI_TYPE_TEXT) {
-    // 构建带上下文的 prompt
-    const prompt = await buildCtxPrompt({ Content, FromUserName });
+  response = await getAIResponse(Content);
 
-    // 请求远程消息
-    response = await getAIResponse(prompt);
-  }
+  console.log(response)
 
-  if (aiType === AI_TYPE_IMAGE) {
-    // 去掉开始前的关键词
-    const prompt = Content.substring(AI_IMAGE_KEY.length);
-    // 请求远程消息
-    response = await getAIIMAGE(prompt);
-  }
+  // if (aiType === AI_TYPE_TEXT) {
+  //   // 构建带上下文的 prompt
+  //   const prompt = await buildCtxPrompt({ Content, FromUserName });
+
+  //   // 请求远程消息
+  //   response = await getAIResponse(prompt);
+  // }
+
+  // if (aiType === AI_TYPE_IMAGE) {
+  //   // 去掉开始前的关键词
+  //   const prompt = Content.substring(AI_IMAGE_KEY.length);
+  //   // 请求远程消息
+  //   response = await getAIIMAGE(prompt);
+  // }
 
   // 成功后，更新记录
   await Message.update(
