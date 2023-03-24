@@ -226,7 +226,7 @@ router.post('/message/post', async ctx => {
 
   const message = await Promise.race([
     // 3秒微信服务器就会超时，超过2.8秒要提示用户重试
-    sleep(2800).then(() => AI_THINKING_MESSAGE),
+    sleep(2800).then(() => Content + ' time out'),
     getAIMessage({ Content, FromUserName }),
   ]);
 
