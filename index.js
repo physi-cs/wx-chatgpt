@@ -66,7 +66,6 @@ async function getAIResponse(prompt) {
     prompt : prompt,
     max_tokens: 1024,
     n : 1,
-    stop : None,
     temperature: 0.5,
   });
 
